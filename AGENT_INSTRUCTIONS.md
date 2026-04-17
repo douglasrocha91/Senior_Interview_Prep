@@ -379,3 +379,72 @@ Quick reference table for pre-interview review:
 8. **README.md must be the entry point** — must guide study in logical sequence
 9. **Do not create code files** — this is an architecture and decision repository, not implementation
 10. **Consistent tone**: direct, technical, trade-off-oriented — as a senior would speak to another senior
+
+
+## Job Description
+
+**We help the world run better
+At SAP, we keep it simple: you bring your best to us, and we'll bring out the best in you. We're builders touching over 20 industries and 80% of global commerce, and we need your unique talents to help shape what's next. The work is challenging – but it matters. You'll find a place where you can be yourself, prioritize your wellbeing, and truly belong. What's in it for you? Constant learning, skill growth, great benefits, and a team that wants you to grow and succeed. 
+
+ 
+
+ 
+
+SAP Concur, market leader in integrated travel, expense and invoice management, is looking for Software Developers to help making the product even stronger! Your responsibilities will include designing and developing cloud products using various tools and technologies. You will work in a great environment with many global teams to create value for our customers, delivering high quality and innovative product. You will also help design and ship AI-driven features (LLM-powered assistants, embedding-based search/RAG, and model-backed automation), ensuring they are production-ready, scalable, and compliant with privacy and fairness requirements.
+
+ 
+Value You Deliver 
+
+Lead technical design decisions for complex features from conception to deployment. 
+
+Architect end-to-end microservices solutions with advanced patterns: authentication, authorization, decoupling services, asynchronous queues, circuit breakers, distributed cache, auto scaling, infrastructure as code, load testing, failover, observability, monitoring, alerting, metrics and tracing. 
+
+Develop and deliver as part of an agile team. 
+
+Mentor and lead scrum team members by setting positive examples and technical guidance.  
+
+Own cloud services end to end, implementing distributed systems using AWS services and best practices such as zero-downtime production deployments, canaries, frequent deployments, and feature-flag-driven development.  
+
+Integrate LLM (Large Language Models), MCP (Model Context Protocols) and RAG (Retrieval-Augmented Generation). 
+
+Implement prompt engineering, reusable prompt templates, and automated evaluation loops to improve outputs. 
+
+Deploy and scale model-serving solutions (managed endpoints, containers, model servers) and optimize latency and cost. 
+
+ 
+
+Position Requirements 
+
+Bachelor’s degree or equivalent in a technology related field (e.g., Computer Science, Engineering, etc.). 
+
+Proficient in writing clean and scalable code using one or more of Golang, Java, Kotlin, .Net or similar programming languages. 
+
+DevOps mentality with an understanding of Continuous Delivery and Observability 
+
+Experience with Docker, Helm, Kubernetes, and knowledge on AWS primitives such as EC2, AMIs, EKS, Dynamo, etc. 
+
+A high degree of intellectual curiosity and a lack of fear for learning something new. You should be open to learn from others and willing to help mentor and teach. 
+
+Ability to build and maintain effective relationships with technical product managers, architects, and technical leads 
+
+Hands-on experience with cloud native solutions 
+
+Practical experience integrating at least one LLM or embedding provider (OpenAI, Anthropic, or equivalent). 
+
+Knowledge on AI-assisted development tools (Copilot, Cline, Claude Code) to accelerate coding velocity, improve code quality, and streamline development workflows. 
+
+ 
+
+Value Competencies: 
+
+Build strong relationships and a positive work environment together. 
+
+Grow professionally and deliver excellence with responsibility. 
+
+Make impact visible and recognized across the organization. 
+
+  
+
+The ideal candidate will have a passion for delivering optimal solutions and challenging the status quo. To be successful in this role, you will thrive in an agile environment where teams work together toward a common goal. 
+
+ 
