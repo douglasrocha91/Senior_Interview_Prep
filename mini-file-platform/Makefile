@@ -1,25 +1,147 @@
-.PHONY: help build test deploy clean
+.DEFAULT_GOAL := help
+.PHONY: help \
+        infra-aws infra-aws-teardown \
+        local-up local-down local-table local-verify \
+        cluster-up cluster-down cluster-status \
+        infra-up infra-down \
+        build test lint clean
+
+# Load .env if present
+-include .env
+export
+
+# ─── Help ─────────────────────────────────────────────────────────────────────
 
 help:
-	@echo "Available targets:"
-	@echo "  help     - Show this help"
-	@echo "  build    - Build all services"
-	@echo "  test     - Run tests for all services"
-	@echo "  deploy   - Deploy infrastructure"
-	@echo "  clean    - Clean build artifacts"
+	@echo ""
+	@echo "mini-file-platform — available targets"
+	@echo ""
+	@echo "  AWS infrastructure"
+	@echo "    infra-aws          Create S3 buckets, SQS queue, and DLQ in AWS"
+	@echo "    infra-aws-teardown Delete all AWS resources (destructive)"
+	@echo ""
+	@echo "  Local infrastructure"
+	@echo "    local-up           Start DynamoDB Local in Docker"
+	@echo "    local-down         Stop DynamoDB Local"
+	@echo "    local-table        Create the transactions table in DynamoDB Local"
+	@echo "    local-verify       Write and read a test record to verify DynamoDB Local"
+	@echo ""
+	@echo "  Kubernetes"
+	@echo "    cluster-up         Create the kind cluster and apply namespace"
+	@echo "    cluster-down       Delete the kind cluster"
+	@echo "    cluster-status     Show cluster nodes and namespaces"
+	@echo ""
+	@echo "  Combined"
+	@echo "    infra-up           Run local-up + local-table + cluster-up"
+	@echo "    infra-down         Run local-down + cluster-down"
+	@echo ""
+	@echo "  Development"
+	@echo "    build              Build all service images"
+	@echo "    test               Run all service tests"
+	@echo "    lint               Run ruff on all Python sources"
+	@echo "    clean              Remove build artifacts"
+	@echo ""
+
+# ─── AWS Infrastructure ───────────────────────────────────────────────────────
+
+infra-aws:
+	@chmod +x infra/aws/bootstrap.sh
+	@bash infra/aws/bootstrap.sh
+
+infra-aws-teardown:
+	@chmod +x infra/aws/teardown.sh
+	@bash infra/aws/teardown.sh
+
+# ─── Local Infrastructure (DynamoDB Local) ────────────────────────────────────
+
+local-up:
+	docker compose -f infra/local/docker-compose.yml up -d
+	@echo "Waiting for DynamoDB Local to be ready..."
+	@until curl -sf http://localhost:8000 > /dev/null 2>&1; do sleep 1; done
+	@echo "[ok] DynamoDB Local is ready at http://localhost:8000"
+
+local-down:
+	docker compose -f infra/local/docker-compose.yml down
+
+local-table:
+	@chmod +x infra/local/create-table.sh
+	@bash infra/local/create-table.sh
+
+local-verify:
+	@echo "=== Writing test record to DynamoDB Local ==="
+	@aws dynamodb put-item \
+		--endpoint-url "$${DYNAMODB_ENDPOINT_URL:-http://localhost:8000}" \
+		--region "$${AWS_DEFAULT_REGION:-us-east-1}" \
+		--table-name "$${DYNAMODB_TABLE_TRANSACTIONS:-transactions}" \
+		--item '{"transaction_id":{"S":"TEST-VERIFY"},"status":{"S":"RECEIVED"}}'
+	@echo "=== Reading test record back ==="
+	@aws dynamodb get-item \
+		--endpoint-url "$${DYNAMODB_ENDPOINT_URL:-http://localhost:8000}" \
+		--region "$${AWS_DEFAULT_REGION:-us-east-1}" \
+		--table-name "$${DYNAMODB_TABLE_TRANSACTIONS:-transactions}" \
+		--key '{"transaction_id":{"S":"TEST-VERIFY"}}'
+	@echo "[ok] DynamoDB Local is working correctly"
+
+# ─── Kubernetes (kind) ────────────────────────────────────────────────────────
+
+cluster-up:
+	@if kind get clusters 2>/dev/null | grep -q "^mini-file-platform$$"; then \
+		echo "[skip] cluster already exists: mini-file-platform"; \
+	else \
+		kind create cluster --config infra/kubernetes/cluster-config.yaml; \
+		echo "[ok] cluster created"; \
+	fi
+	kubectl apply -f infra/kubernetes/namespace.yaml
+	@echo "[ok] namespace applied"
+
+cluster-down:
+	kind delete cluster --name mini-file-platform
+
+cluster-status:
+	@echo "=== Cluster nodes ==="
+	kubectl get nodes
+	@echo ""
+	@echo "=== Namespaces ==="
+	kubectl get namespaces
+
+# ─── Combined Targets ─────────────────────────────────────────────────────────
+
+infra-up: local-up local-table cluster-up
+	@echo ""
+	@echo "=== Local infrastructure is ready ==="
+	@echo "  DynamoDB Local : http://localhost:8000"
+	@echo "  kind cluster   : mini-file-platform"
+	@echo ""
+	@echo "Next: run 'make infra-aws' to provision AWS resources."
+
+infra-down: local-down cluster-down
+	@echo "=== Local infrastructure stopped ==="
+
+# ─── Development ──────────────────────────────────────────────────────────────
 
 build:
-	@echo "Building all services..."
-	# Add build commands for each service here
+	@echo "Building service images..."
+	@for svc in submitter-cli processor-worker status-api; do \
+		if [ -f "$$svc/Dockerfile" ]; then \
+			docker build -t "mini-file-platform/$$svc:dev" "$$svc"; \
+		else \
+			echo "[skip] no Dockerfile yet: $$svc"; \
+		fi; \
+	done
 
 test:
-	@echo "Running tests..."
-	# Add test commands for each service here
+	@for svc in submitter-cli ingest-lambda processor-worker status-api shared; do \
+		if [ -f "$$svc/pyproject.toml" ] || [ -f "$$svc/setup.py" ]; then \
+			echo "=== Testing: $$svc ==="; \
+			python3 -m pytest "$$svc/tests" -v; \
+		fi; \
+	done
 
-deploy:
-	@echo "Deploying infrastructure..."
-	# Add deployment commands here
+lint:
+	@python3 -m ruff check submitter-cli ingest-lambda processor-worker status-api shared
 
 clean:
-	@echo "Cleaning..."
-	# Add clean commands here
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	find . -name "*.pyc" -delete 2>/dev/null || true
