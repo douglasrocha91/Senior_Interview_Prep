@@ -145,12 +145,19 @@ results/{transaction_id}/errors.json
 - [ ] Bootstrap kind cluster and verify with `make cluster-status`
 
 ### Phase 2 — Submitter CLI
-- [ ] Sample CSV fixture in `sample-files/`
-- [ ] GPG key pair generation instructions
-- [ ] `submitter-cli/app/` — generate and encrypt CSV
-- [ ] `submitter-cli/app/` — upload to S3 with metadata (`transaction_id`, `partner`, `uploaded_at`, `schema_version`)
-- [ ] Print transaction ID and S3 key on success
-- [ ] Unit tests in `submitter-cli/tests/`
+- [x] `sample-files/expenses_sample.csv` — 10-row fixture for manual testing
+- [x] `docs/gpg-setup.md` — key pair generation, export, and interview talking points
+- [x] `shared/models/transaction.py` — `TransactionStatus`, `Transaction`, `FileJob`, `ValidationError`
+- [x] `shared/utils/ids.py` — ULID generator (no external dependency)
+- [x] `shared/utils/log_config.py` — JSON structured logging with `transaction_id` correlation
+- [x] `shared/utils/timestamps.py` — UTC helpers
+- [x] `submitter-cli/app/generator.py` — generates valid expense CSVs
+- [x] `submitter-cli/app/crypto.py` — GPG encryption via `python-gnupg`
+- [x] `submitter-cli/app/uploader.py` — S3 upload with canonical key and metadata
+- [x] `submitter-cli/app/main.py` — Click CLI: `generate`, `submit`, `generate-and-submit`
+- [x] 18 unit tests passing (`test_generator`, `test_crypto`, `test_uploader`)
+- [x] Makefile targets: `venv`, `submit-generate`, `submit-submit`, `submit-generate-and-submit`, `test`
+- [ ] Run `make infra-aws` and execute a real end-to-end upload to verify S3 + metadata
 
 ### Phase 3 — Ingest Lambda
 - [ ] `ingest-lambda/app/handler.py` — parse S3 event payload

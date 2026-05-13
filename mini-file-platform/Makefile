@@ -4,7 +4,15 @@
         local-up local-down local-table local-verify \
         cluster-up cluster-down cluster-status \
         infra-up infra-down \
+        venv \
+        submit-generate submit-submit submit-generate-and-submit \
         build test lint clean
+
+VENV       := .venv
+PYTHON     := $(VENV)/bin/python3
+PIP        := $(VENV)/bin/pip
+PYTEST     := $(VENV)/bin/pytest
+PROJECT_ROOT := $(shell pwd)
 
 # Load .env if present
 -include .env
@@ -34,6 +42,12 @@ help:
 	@echo "  Combined"
 	@echo "    infra-up           Run local-up + local-table + cluster-up"
 	@echo "    infra-down         Run local-down + cluster-down"
+	@echo ""
+	@echo "  Submitter CLI"
+	@echo "    venv               Create the shared Python virtualenv"
+	@echo "    submit-generate    Generate a sample CSV (PARTNER=acme ROWS=50)"
+	@echo "    submit-submit      Encrypt and upload an existing CSV (FILE=path PARTNER=acme)"
+	@echo "    submit-generate-and-submit  Generate + encrypt + upload (PARTNER=acme ROWS=50)"
 	@echo ""
 	@echo "  Development"
 	@echo "    build              Build all service images"
@@ -117,6 +131,38 @@ infra-up: local-up local-table cluster-up
 infra-down: local-down cluster-down
 	@echo "=== Local infrastructure stopped ==="
 
+# ─── Virtualenv ───────────────────────────────────────────────────────────────
+
+venv:
+	@if [ ! -d "$(VENV)" ]; then \
+		python3 -m venv $(VENV); \
+		echo "[ok] virtualenv created at $(VENV)"; \
+	else \
+		echo "[skip] virtualenv already exists"; \
+	fi
+	$(PIP) install -q "click>=8.1" "python-gnupg>=0.5.2" "boto3>=1.34" \
+	                  "pytest>=8.0" "pytest-mock>=3.14"
+	@echo "[ok] dependencies installed"
+
+# ─── Submitter CLI ────────────────────────────────────────────────────────────
+
+PARTNER ?= acme
+ROWS    ?= 50
+FILE    ?=
+
+submit-generate: venv
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main generate \
+		--partner $(PARTNER) --rows $(ROWS)
+
+submit-submit: venv
+	@[ -n "$(FILE)" ] || (echo "Usage: make submit-submit FILE=path/to/file.csv PARTNER=acme" && exit 1)
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main submit \
+		--file $(FILE) --partner $(PARTNER)
+
+submit-generate-and-submit: venv
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main generate-and-submit \
+		--partner $(PARTNER) --rows $(ROWS)
+
 # ─── Development ──────────────────────────────────────────────────────────────
 
 build:
@@ -129,16 +175,12 @@ build:
 		fi; \
 	done
 
-test:
-	@for svc in submitter-cli ingest-lambda processor-worker status-api shared; do \
-		if [ -f "$$svc/pyproject.toml" ] || [ -f "$$svc/setup.py" ]; then \
-			echo "=== Testing: $$svc ==="; \
-			python3 -m pytest "$$svc/tests" -v; \
-		fi; \
-	done
+test: venv
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) submitter-cli/tests/ -v
 
 lint:
-	@python3 -m ruff check submitter-cli ingest-lambda processor-worker status-api shared
+	@$(VENV)/bin/ruff check submitter-cli/ shared/ 2>/dev/null || \
+	 python3 -m ruff check submitter-cli/ shared/
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
