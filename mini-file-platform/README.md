@@ -84,6 +84,66 @@ Run `make help` to see all available targets.
 
 ---
 
+## Running the Submitter CLI (Phase 2)
+
+### Setup
+
+```bash
+# 1. Create virtualenv and install dependencies
+make venv
+
+# 2. Generate a GPG key pair for local encryption
+gpg --batch --gen-key <<EOF
+Key-Type: RSA
+Key-Length: 4096
+Name-Real: Mini File Platform
+Name-Email: platform@local.dev
+Expire-Date: 0
+%no-passphrase
+%commit
+EOF
+
+# 3. Fill in .env (minimum required for the CLI)
+echo "GPG_RECIPIENT_EMAIL=platform@local.dev" >> .env
+echo "S3_INBOUND_BUCKET=mini-file-platform-inbound" >> .env
+# Also set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+```
+
+### Generate a sample CSV
+
+```bash
+make submit-generate PARTNER=acme ROWS=50
+# → /tmp/acme_expenses.csv (50 rows)
+```
+
+### Encrypt and upload
+
+```bash
+make submit-submit PARTNER=acme FILE=/tmp/acme_expenses.csv
+# → transaction_id : 01JXY3ABCDEFGHIJKLMNOPQRST
+# → s3_key         : inbox/acme/2026/05/13/01JXY3ABCDEFGHIJKLMNOPQRST.csv.gpg
+```
+
+### Or do both in one step
+
+```bash
+make submit-generate-and-submit PARTNER=acme ROWS=50
+```
+
+### Verify the upload
+
+```bash
+# Confirm the object and its metadata exist in S3
+aws s3api head-object \
+  --bucket mini-file-platform-inbound \
+  --key inbox/acme/<yyyy>/<mm>/<dd>/<transaction_id>.csv.gpg
+```
+
+See [`submitter-cli/README.md`](submitter-cli/README.md) for full command reference and design decisions.
+See [`docs/gpg-setup.md`](docs/gpg-setup.md) for GPG key management and interview talking points.
+
+---
+
 ## Domain Model
 
 ### TransactionStatus (enum)
