@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help \
-        infra-aws infra-aws-teardown \
+        infra-aws infra-aws-teardown infra-deploy-lambda infra-wire-s3 \
         local-up local-down local-table local-verify \
         cluster-up cluster-down cluster-status \
         infra-up infra-down \
@@ -25,8 +25,10 @@ help:
 	@echo "mini-file-platform — available targets"
 	@echo ""
 	@echo "  AWS infrastructure"
-	@echo "    infra-aws          Create S3 buckets, SQS queue, and DLQ in AWS"
-	@echo "    infra-aws-teardown Delete all AWS resources (destructive)"
+	@echo "    infra-aws              Create S3 buckets, SQS queue, and DLQ in AWS"
+	@echo "    infra-aws-teardown     Delete all AWS resources (destructive)"
+	@echo "    infra-deploy-lambda    Package and deploy the ingest Lambda"
+	@echo "    infra-wire-s3          Wire S3 ObjectCreated events to the Lambda"
 	@echo ""
 	@echo "  Local infrastructure"
 	@echo "    local-up           Start DynamoDB Local in Docker"
@@ -65,6 +67,14 @@ infra-aws:
 infra-aws-teardown:
 	@chmod +x infra/aws/teardown.sh
 	@bash infra/aws/teardown.sh
+
+infra-deploy-lambda:
+	@chmod +x infra/aws/deploy-lambda.sh
+	@bash infra/aws/deploy-lambda.sh
+
+infra-wire-s3:
+	@chmod +x infra/aws/wire-s3-notification.sh
+	@bash infra/aws/wire-s3-notification.sh
 
 # ─── Local Infrastructure (DynamoDB Local) ────────────────────────────────────
 
@@ -141,7 +151,7 @@ venv:
 		echo "[skip] virtualenv already exists"; \
 	fi
 	$(PIP) install -q "click>=8.1" "python-gnupg>=0.5.2" "boto3>=1.34" \
-	                  "pytest>=8.0" "pytest-mock>=3.14"
+	                  "pytest>=8.0" "pytest-mock>=3.14" "ruff>=0.9"
 	@echo "[ok] dependencies installed"
 
 # ─── Submitter CLI ────────────────────────────────────────────────────────────
@@ -177,6 +187,11 @@ build:
 
 test: venv
 	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) submitter-cli/tests/ -v
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) ingest-lambda/tests/ -v
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) processor-worker/tests/ -v
+
+worker-run: venv
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main
 
 lint:
 	@$(VENV)/bin/ruff check submitter-cli/ shared/ 2>/dev/null || \
