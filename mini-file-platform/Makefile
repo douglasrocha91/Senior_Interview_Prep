@@ -6,7 +6,9 @@
         infra-up infra-down \
         venv \
         submit-generate submit-submit submit-generate-and-submit \
-        build test lint clean
+        build cluster-load cluster-deploy cluster-rollout \
+        test lint clean \
+        api-run worker-run
 
 VENV       := .venv
 PYTHON     := $(VENV)/bin/python3
@@ -40,6 +42,9 @@ help:
 	@echo "    cluster-up         Create the kind cluster and apply namespace"
 	@echo "    cluster-down       Delete the kind cluster"
 	@echo "    cluster-status     Show cluster nodes and namespaces"
+	@echo "    cluster-load       Build images and load into kind"
+	@echo "    cluster-deploy     Load images + apply all manifests"
+	@echo "    cluster-rollout    Restart deployments and wait for rollout"
 	@echo ""
 	@echo "  Combined"
 	@echo "    infra-up           Run local-up + local-table + cluster-up"
@@ -56,6 +61,8 @@ help:
 	@echo "    test               Run all service tests"
 	@echo "    lint               Run ruff on all Python sources"
 	@echo "    clean              Remove build artifacts"
+	@echo "    api-run            Start status API on :8080 (reload mode)"
+	@echo "    worker-run         Run processor worker locally"
 	@echo ""
 
 # ─── AWS Infrastructure ───────────────────────────────────────────────────────
@@ -151,6 +158,7 @@ venv:
 		echo "[skip] virtualenv already exists"; \
 	fi
 	$(PIP) install -q "click>=8.1" "python-gnupg>=0.5.2" "boto3>=1.34" \
+	                  "fastapi>=0.111" "uvicorn[standard]>=0.29" "httpx>=0.27" \
 	                  "pytest>=8.0" "pytest-mock>=3.14" "ruff>=0.9"
 	@echo "[ok] dependencies installed"
 
@@ -177,21 +185,54 @@ submit-generate-and-submit: venv
 
 build:
 	@echo "Building service images..."
-	@for svc in submitter-cli processor-worker status-api; do \
+	@for svc in processor-worker status-api; do \
 		if [ -f "$$svc/Dockerfile" ]; then \
-			docker build -t "mini-file-platform/$$svc:dev" "$$svc"; \
+			docker build -t "mini-file-platform/$$svc:dev" \
+			  -f "$$svc/Dockerfile" .; \
+			echo "[ok] built mini-file-platform/$$svc:dev"; \
 		else \
 			echo "[skip] no Dockerfile yet: $$svc"; \
 		fi; \
 	done
 
+cluster-load: build
+	@echo "Loading images into kind cluster..."
+	kind load docker-image mini-file-platform/processor-worker:dev --name mini-file-platform
+	kind load docker-image mini-file-platform/status-api:dev --name mini-file-platform
+	@echo "[ok] images loaded"
+
+cluster-deploy: cluster-load
+	@[ -n "$${SQS_QUEUE_URL:-}" ] || (echo "ERROR: SQS_QUEUE_URL is not set — add it to .env" && exit 1)
+	envsubst < infra/kubernetes/configmap.yaml | kubectl apply -f -
+	@if [ -f infra/kubernetes/secret.local.yaml ]; then \
+		kubectl apply -f infra/kubernetes/secret.local.yaml; \
+	else \
+		echo "[warn] infra/kubernetes/secret.local.yaml not found — skipping secrets"; \
+	fi
+	kubectl apply -f infra/kubernetes/processor-worker-deployment.yaml
+	kubectl apply -f infra/kubernetes/status-api-deployment.yaml
+	@echo ""
+	@echo "[ok] deployed to kind cluster"
+	@echo "  Status API: http://localhost:8080/health"
+
+cluster-rollout:
+	kubectl rollout restart deployment/processor-worker -n mini-file-platform
+	kubectl rollout restart deployment/status-api -n mini-file-platform
+	kubectl rollout status deployment/processor-worker -n mini-file-platform
+	kubectl rollout status deployment/status-api -n mini-file-platform
+
 test: venv
 	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) submitter-cli/tests/ -v
 	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) ingest-lambda/tests/ -v
 	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) processor-worker/tests/ -v
+	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) status-api/tests/ -v
 
 worker-run: venv
 	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main
+
+api-run: venv
+	PYTHONPATH="$(PROJECT_ROOT)" $(VENV)/bin/uvicorn app.main:app --app-dir status-api \
+		--host 0.0.0.0 --port 8080 --reload
 
 lint:
 	@$(VENV)/bin/ruff check submitter-cli/ shared/ 2>/dev/null || \

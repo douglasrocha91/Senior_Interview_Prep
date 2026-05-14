@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-api
+  namespace: mini-file-platform
+  labels:
+    app: status-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: status-api
+  template:
+    metadata:
+      labels:
+        app: status-api
+    spec:
+      containers:
+        - name: status-api
+          image: mini-file-platform/status-api:dev
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: mini-file-platform-config
+            - secretRef:
+                name: mini-file-platform-aws
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: status-api
+  namespace: mini-file-platform
+spec:
+  type: NodePort
+  selector:
+    app: status-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080

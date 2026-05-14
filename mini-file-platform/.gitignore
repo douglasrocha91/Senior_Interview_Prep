@@ -29,6 +29,9 @@ htmlcov/
 infra/local/platform-private.asc
 infra/local/platform-public.asc
 
+# Kubernetes real secrets (never commit)
+infra/kubernetes/secret.local.yaml
+
 # macOS
 .DS_Store
 

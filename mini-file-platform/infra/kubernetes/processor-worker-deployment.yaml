@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processor-worker
+  namespace: mini-file-platform
+  labels:
+    app: processor-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: processor-worker
+  template:
+    metadata:
+      labels:
+        app: processor-worker
+    spec:
+      containers:
+        - name: processor-worker
+          image: mini-file-platform/processor-worker:dev
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: mini-file-platform-config
+            - secretRef:
+                name: mini-file-platform-aws
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
