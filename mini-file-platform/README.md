@@ -4,6 +4,20 @@ A compact but realistic end-to-end file ingestion platform built for senior inte
 
 ---
 
+## Documentation
+
+| Guide | Description |
+|---|---|
+| [E2E Local Walkthrough](docs/e2e-local.md) | Full pipeline from upload to status query — no real AWS needed |
+| [DynamoDB Local Setup](docs/setup-dynamodb-local.md) | Docker setup, table creation, manual queries, troubleshooting |
+| [LocalStack Setup](docs/setup-localstack.md) | Local S3 + SQS emulation, DLQ redrive policy, boto3 wiring |
+| [AWS Setup](docs/setup-aws.md) | IAM user, S3 buckets, SQS queues, Lambda deploy |
+| [GPG Setup](docs/setup-gpg.md) | Key generation, macOS path constraints, key separation |
+| [Kubernetes Setup](docs/setup-kubernetes.md) | kind cluster, image build/load, envsubst deploy, rollout |
+| [Failure Scenarios](docs/failure-scenarios.md) | Corrupt file, missing key, poison message, DLQ inspection |
+
+---
+
 ## Architecture
 
 ```
@@ -140,7 +154,7 @@ aws s3api head-object \
 ```
 
 See [`submitter-cli/README.md`](submitter-cli/README.md) for full command reference and design decisions.
-See [`docs/gpg-setup.md`](docs/gpg-setup.md) for GPG key management and interview talking points.
+See [`docs/setup-gpg.md`](docs/setup-gpg.md) for GPG key management and interview talking points.
 
 ---
 
