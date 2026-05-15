@@ -8,7 +8,8 @@
         submit-generate submit-submit submit-generate-and-submit \
         build cluster-load cluster-deploy cluster-rollout \
         test lint clean \
-        api-run worker-run
+        api-run worker-run \
+        scenario-corrupt scenario-missing scenario-poison scenario-dlq
 
 VENV       := .venv
 PYTHON     := $(VENV)/bin/python3
@@ -63,6 +64,12 @@ help:
 	@echo "    clean              Remove build artifacts"
 	@echo "    api-run            Start status API on :8080 (reload mode)"
 	@echo "    worker-run         Run processor worker locally"
+	@echo ""
+	@echo "  Failure scenarios (Phase 7)"
+	@echo "    scenario-corrupt   Upload arquivo GPG inválido (decrypt falha)"
+	@echo "    scenario-missing   Mensagem com S3 key inexistente (download falha)"
+	@echo "    scenario-poison    Mensagem JSON malformada (vai para DLQ)"
+	@echo "    scenario-dlq       Mostra quantas mensagens estão no DLQ"
 	@echo ""
 
 # ─── AWS Infrastructure ───────────────────────────────────────────────────────
@@ -233,6 +240,24 @@ worker-run: venv
 api-run: venv
 	PYTHONPATH="$(PROJECT_ROOT)/status-api:$(PROJECT_ROOT)" $(VENV)/bin/uvicorn app.main:app \
 		--host 0.0.0.0 --port 8080 --reload
+
+# ─── Failure Scenarios (Phase 7) ─────────────────────────────────────────────
+
+scenario-corrupt:
+	@chmod +x infra/local/failure-scenarios.sh
+	@bash infra/local/failure-scenarios.sh corrupt-file
+
+scenario-missing:
+	@chmod +x infra/local/failure-scenarios.sh
+	@bash infra/local/failure-scenarios.sh missing-key
+
+scenario-poison:
+	@chmod +x infra/local/failure-scenarios.sh
+	@bash infra/local/failure-scenarios.sh poison
+
+scenario-dlq:
+	@chmod +x infra/local/failure-scenarios.sh
+	@bash infra/local/failure-scenarios.sh dlq-check
 
 lint:
 	@$(VENV)/bin/ruff check submitter-cli/ shared/ 2>/dev/null || \
