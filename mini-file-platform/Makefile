@@ -169,16 +169,16 @@ ROWS    ?= 50
 FILE    ?=
 
 submit-generate: venv
-	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main generate \
+	PYTHONPATH="$(PROJECT_ROOT)/submitter-cli:$(PROJECT_ROOT)" $(PYTHON) -m app.main generate \
 		--partner $(PARTNER) --rows $(ROWS)
 
 submit-submit: venv
 	@[ -n "$(FILE)" ] || (echo "Usage: make submit-submit FILE=path/to/file.csv PARTNER=acme" && exit 1)
-	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main submit \
+	PYTHONPATH="$(PROJECT_ROOT)/submitter-cli:$(PROJECT_ROOT)" $(PYTHON) -m app.main submit \
 		--file $(FILE) --partner $(PARTNER)
 
 submit-generate-and-submit: venv
-	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main generate-and-submit \
+	PYTHONPATH="$(PROJECT_ROOT)/submitter-cli:$(PROJECT_ROOT)" $(PYTHON) -m app.main generate-and-submit \
 		--partner $(PARTNER) --rows $(ROWS)
 
 # ─── Development ──────────────────────────────────────────────────────────────
@@ -228,10 +228,10 @@ test: venv
 	PYTHONPATH="$(PROJECT_ROOT)" $(PYTEST) status-api/tests/ -v
 
 worker-run: venv
-	PYTHONPATH="$(PROJECT_ROOT)" $(PYTHON) -m app.main
+	PYTHONPATH="$(PROJECT_ROOT)/processor-worker:$(PROJECT_ROOT)" $(PYTHON) -m app.main
 
 api-run: venv
-	PYTHONPATH="$(PROJECT_ROOT)" $(VENV)/bin/uvicorn app.main:app --app-dir status-api \
+	PYTHONPATH="$(PROJECT_ROOT)/status-api:$(PROJECT_ROOT)" $(VENV)/bin/uvicorn app.main:app \
 		--host 0.0.0.0 --port 8080 --reload
 
 lint:
