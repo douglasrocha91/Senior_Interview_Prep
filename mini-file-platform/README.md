@@ -15,6 +15,8 @@ A compact but realistic end-to-end file ingestion platform built for senior inte
 | [GPG Setup](docs/setup-gpg.md) | Key generation, macOS path constraints, key separation |
 | [Kubernetes Setup](docs/setup-kubernetes.md) | kind cluster, image build/load, envsubst deploy, rollout |
 | [Failure Scenarios](docs/failure-scenarios.md) | Corrupt file, missing key, poison message, DLQ inspection |
+| [AWS & Kubernetes — Fluency Guide](docs/interview-aws-fluency.md) | Talking points, key concepts, and Q&A for each technology |
+| [Interview Quiz](docs/interview-quiz.md) | 25 questions with answers — S3, SQS, Lambda, Kubernetes, IAM |
 
 ---
 
