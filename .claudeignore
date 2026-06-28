@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+
+# Build output
+dist/
+build/
+bin/
+obj/
+out/
+target/
+*.o
+*.a
+*.so
+*.exe
+*.out
+
+# Logs & temp
+*.log
+logs/
+tmp/
+*.tmp
+
+# Generated / coverage / cache
+coverage/
+*.cover
+*.test
+__pycache__/
+.cache/
+
+# Large assets
+*.zip
+*.tar
+*.gz
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.mp4
+*.bin
+
+# Snapshots & lockfiles
+*.snap
+__snapshots__/
+package-lock.json
+go.sum
+
+# VCS & editor cruft
+.git/
+.DS_Store
